@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система обліку військовослужбовців</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        military: {
+                            50: '#f0f9ff',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+
+<div id="unit-modal" class="fixed inset-0 bg-gray-900 bg-opacity-90 z-50 flex items-center justify-center hidden">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Оберіть підрозділ</h2>
+        <p class="mb-4 text-gray-600">Для продовження роботи оберіть підрозділ зі списку:</p>
+        <select id="unit-select" class="w-full p-3 border rounded mb-6 text-lg bg-white">
+            <option value="">Завантаження...</option>
+        </select>
+        <div class="flex justify-between items-center">
+             <button onclick="handleLogout()" class="text-red-500 hover:underline text-sm">Вийти</button>
+             <button onclick="confirmUnitSelection()" class="bg-military-600 text-white px-6 py-2 rounded hover:bg-military-700 font-bold transition-colors">Обрати</button>
+        </div>
+    </div>
+</div>
+
+<div id="auth-container" class="relative min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="absolute inset-0 bg-cover bg-center z-0" style="background-image: url('https://www.istpravda.com.ua/images/doc/b/8/b8435c6-dscn2023.jpg'); filter: brightness(0.4);"></div>
+        
+        <div class="relative z-10 w-full max-w-md">
+            <form id="login-form" class="bg-gray-800/60 backdrop-blur-lg shadow-xl rounded-lg p-8 space-y-6 border border-gray-200/20">
+                <div class="text-center">
+                    <i class="fas fa-shield-alt text-4xl text-military-500 mb-2"></i>
+                    <h2 class="text-2xl font-bold text-white">Вхід в систему</h2>
+                </div>
+                <div>
+                    <label for="login-email" class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input id="login-email" type="email" required class="w-full px-3 py-2 bg-gray-700/50 text-white border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                </div>
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-gray-300 mb-2">Пароль</label>
+                    <input id="login-password" type="password" required class="w-full px-3 py-2 bg-gray-700/50 text-white border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                </div>
+                <button type="submit" class="w-full px-4 py-2 bg-military-600 text-white rounded-md hover:bg-military-700 transition-colors font-semibold">
+                    Увійти
+                </button>
+                <p class="text-center text-sm text-gray-400">
+                    Немає акаунту? 
+                    <button type="button" onclick="toggleAuthForm()" class="font-medium text-military-500 hover:text-military-400">Зареєструватися</button>
+                </p>
+            </form>
+
+            <form id="register-form" class="bg-gray-800/60 backdrop-blur-lg shadow-xl rounded-lg p-8 space-y-6 border border-gray-200/20 hidden">
+                 <div class="text-center">
+                    <i class="fas fa-user-plus text-4xl text-military-500 mb-2"></i>
+                    <h2 class="text-2xl font-bold text-white">Створення акаунту</h2>
+                </div>
+                <div>
+                    <label for="register-email" class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input id="register-email" type="email" required class="w-full px-3 py-2 bg-gray-700/50 text-white border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                </div>
+                <div>
+                    <label for="register-password" class="block text-sm font-medium text-gray-300 mb-2">Пароль (мін. 6 символів)</label>
+                    <input id="register-password" type="password" required class="w-full px-3 py-2 bg-gray-700/50 text-white border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                </div>
+                <button type="submit" class="w-full px-4 py-2 bg-military-600 text-white rounded-md hover:bg-military-700 transition-colors font-semibold">
+                    Зареєструватися
+                </button>
+                <p class="text-center text-sm text-gray-400">
+                    Вже є акаунт? 
+                    <button type="button" onclick="toggleAuthForm()" class="font-medium text-military-500 hover:text-military-400">Увійти</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <nav class="bg-military-800 text-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <i class="fas fa-shield-alt text-2xl mr-3"></i>
+                        <div>
+                            <h1 class="text-xl font-bold">Облік військовослужбовців</h1>
+                            <span id="header-unit-name" class="text-xs text-gray-300 font-normal"></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button onclick="showPage('dashboard')" class="nav-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-military-700 transition-colors">
+                            <i class="fas fa-chart-dashboard mr-1"></i>Дашборд
+                        </button>
+                        <button onclick="showPage('personnel')" class="nav-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-military-700 transition-colors">
+                            <i class="fas fa-users mr-1"></i>Персонал
+                        </button>
+                        <button onclick="prepareAndShowAddPage()" id="nav-add-btn" class="nav-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-military-700 transition-colors">
+                            <i class="fas fa-user-plus mr-1"></i>Додати
+                        </button>
+                        <button onclick="changeUnit()" class="px-3 py-2 rounded-md text-sm font-medium bg-military-700 hover:bg-military-600 transition-colors border border-military-600">
+                            <i class="fas fa-exchange-alt mr-1"></i>Підрозділ
+                        </button>
+                        <button onclick="handleLogout()" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-red-600 transition-colors">
+                            <i class="fas fa-sign-out-alt mr-1"></i>Вийти
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div id="dashboard-page" class="page">
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4 py-6 sm:px-0">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Дашборд <span id="dashboard-unit-label" class="text-lg font-normal text-gray-500 ml-2"></span></h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-5 shadow rounded-lg flex items-center justify-between">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Всього персоналу</dt>
+                        <dd class="text-3xl font-bold text-gray-900" id="total-count">0</dd>
+                    </div>
+                    <div class="bg-blue-100 rounded-full p-3">
+                        <i class="fas fa-users text-blue-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 shadow rounded-lg flex items-center justify-between">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Активних</dt>
+                        <dd class="text-3xl font-bold text-gray-900" id="active-count">0</dd>
+                    </div>
+                    <div class="bg-green-100 rounded-full p-3">
+                        <i class="fas fa-user-check text-green-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 shadow rounded-lg flex items-center justify-between">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Неактивних</dt>
+                        <dd class="text-3xl font-bold text-gray-900" id="inactive-count">0</dd>
+                    </div>
+                     <div class="bg-red-100 rounded-full p-3">
+                        <i class="fas fa-user-times text-red-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 shadow rounded-lg flex items-center justify-between">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500 truncate">У відпустці</dt>
+                        <dd class="text-3xl font-bold text-gray-900" id="leave-count">0</dd>
+                    </div>
+                    <div class="bg-yellow-100 rounded-full p-3">
+                       <i class="fas fa-user-clock text-yellow-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 space-y-8">
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Статуси персоналу</h3>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="status-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Групи крові</h3>
+                        <div id="blood-type-stats" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 space-y-8">
+                      <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Топ-5 звань за кількістю</h3>
+                        <div id="rank-stats" class="space-y-2"></div>
+                    </div>
+                      <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Топ-5 підрозділів за кількістю</h3>
+                        <div id="unit-stats" class="space-y-2"></div>
+                    </div>
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Останні додані службовці</h3>
+                        <ul id="recent-additions-list" class="divide-y divide-gray-200"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <div id="personnel-page" class="page hidden">
+            <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                <div class="px-4 py-6 sm:px-0">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-gray-900">Список персоналу</h2>
+                        <button onclick="prepareAndShowAddPage()" id="list-add-btn" class="bg-military-600 hover:bg-military-700 text-white px-4 py-2 rounded-md transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Додати нового
+                        </button>
+                    </div>
+
+                    <div class="bg-white shadow rounded-lg p-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Пошук</label>
+                                <input type="text" id="search-input" placeholder="Прізвище, ім'я або військовий ID" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Статус</label>
+                                <select id="status-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                                    <option value="">Всі статуси</option>
+                                    <option value="active">Активний</option>
+                                    <option value="inactive">Неактивний</option>
+                                    <option value="leave">У відпустці</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="searchPersonnel()" class="bg-military-600 hover:bg-military-700 text-white px-4 py-2 rounded-md transition-colors">
+                                    <i class="fas fa-search mr-2"></i>Пошук
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white shadow rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Військовий ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ПІБ</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Звання</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Підрозділ</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дії</th>
+                                </tr>
+                            </thead>
+                            <tbody id="personnel-table-body" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div id="pagination" class="flex justify-between items-center mt-6">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-page" class="page hidden">
+            <div class="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+                <div class="px-4 py-6 sm:px-0">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 id="form-title" class="text-3xl font-bold text-gray-900">Додати військовослужбовця</h2>
+                        <button onclick="showPage('personnel')" class="text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-times text-2xl"></i>
+                        </button>
+                    </div>
+
+                    <form id="personnel-form" class="bg-white shadow rounded-lg p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="col-span-2">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Основна інформація</h3>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Військовий ID *</label>
+                                <input type="text" name="militaryId" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Прізвище *</label>
+                                <input type="text" name="lastName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Ім'я *</label>
+                                <input type="text" name="firstName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">По батькові</label>
+                                <input type="text" name="middleName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Дата народження *</label>
+                                <input type="date" name="birthDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Звання *</label>
+                                <select name="rank" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                                    <option value="">Оберіть звання</option>
+                                    <option value="Солдат">Солдат</option>
+                                    <option value="Старший солдат">Старший солдат</option>
+                                    <option value="Молодший сержант">Молодший сержант</option>
+                                    <option value="Сержант">Сержант</option>
+                                    <option value="Старший сержант">Старший сержант</option>
+                                    <option value="Старшина">Старшина</option>
+                                    <option value="Прапорщик">Прапорщик</option>
+                                    <option value="Старший прапорщик">Старший прапорщик</option>
+                                    <option value="Молодший лейтенант">Молодший лейтенант</option>
+                                    <option value="Лейтенант">Лейтенант</option>
+                                    <option value="Старший лейтенант">Старший лейтенант</option>
+                                    <option value="Капітан">Капітан</option>
+                                    <option value="Майор">Майор</option>
+                                    <option value="Підполковник">Підполковник</option>
+                                    <option value="Полковник">Полковник</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Посада *</label>
+                                <input type="text" name="position" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Підрозділ *</label>
+                                <input type="text" name="unit" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Дата початку служби *</label>
+                                <input type="date" name="serviceStartDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Статус</label>
+                                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                                    <option value="active">Активний</option>
+                                    <option value="inactive">Неактивний</option>
+                                    <option value="leave">У відпустці</option>
+                                </select>
+                            </div>
+
+                            <div class="col-span-2 mt-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Контактна інформація</h3>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Телефон</label>
+                                <input type="tel" name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                            </div>
+
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Адреса</label>
+                                <textarea name="address" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500"></textarea>
+                            </div>
+                        </div>
+
+                        </div>
+                        </div>
+
+                        <div class="col-span-2 mt-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Медична інформація</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Група крові та резус-фактор</label>
+                                <select name="medicalInfo.bloodType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
+                                    <option value="">Не вказано</option>
+                                    <option value="O(I) Rh+">O(I) Rh+</option>
+                                    <option value="O(I) Rh-">O(I) Rh-</option>
+                                    <option value="A(II) Rh+">A(II) Rh+</option>
+                                    <option value="A(II) Rh-">A(II) Rh-</option>
+                                    <option value="B(III) Rh+">B(III) Rh+</option>
+                                    <option value="B(III) Rh-">B(III) Rh-</option>
+                                    <option value="AB(IV) Rh+">AB(IV) Rh+</option>
+                                    <option value="AB(IV) Rh-">AB(IV) Rh-</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Алергії</label>
+                                <input type="text" name="medicalInfo.allergies" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500" placeholder="Наприклад, на пеніцилін">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Медикаменти, що постійно вживаються</label>
+                                <textarea name="medicalInfo.medications" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500"></textarea>
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-4 mt-8 col-span-2">
+                            <button type="button" onclick="showPage('personnel')" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                                Скасувати
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-military-600 text-white rounded-md hover:bg-military-700 transition-colors">
+                                <i class="fas fa-save mr-2"></i>Зберегти
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let currentPage = 'dashboard';
+        let currentPersonnel = [];
+        let editingPersonnel = null;
+        let currentPagination = { current: 1, pages: 1, total: 0 };
+        let userRole = localStorage.getItem('role') || 'user';
+        let currentUnit = localStorage.getItem('currentUnit') || '';
+
+        // API Base URL
+        const API_BASE = '/api';
+
+        function toggleAuthForm() {
+            document.getElementById('login-form').classList.toggle('hidden');
+            document.getElementById('register-form').classList.toggle('hidden');
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    localStorage.setItem('token', result.token);
+                    localStorage.setItem('role', result.role);
+                    userRole = result.role;
+
+                    document.getElementById('auth-container').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    
+                    // Завантажуємо підрозділи і показуємо модалку
+                    loadUnitsAndShowModal();
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Помилка мережі при спробі входу', 'error');
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('Реєстрація успішна! Тепер можете увійти.', 'success');
+                    toggleAuthForm();
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Помилка мережі при реєстрації', 'error');
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            localStorage.removeItem('currentUnit');
+            currentUnit = '';
+            
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('unit-modal').classList.add('hidden'); // ховаємо модалку при виході
+            document.getElementById('auth-container').classList.remove('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        }
+
+        async function fetchProtected(url, options = {}) {
+            const token = localStorage.getItem('token');
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const response = await fetch(url, { ...options, headers });
+
+            if (response.status === 401) {
+                handleLogout();
+                throw new Error('Unauthorized');
+            }
+            return response;
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('app').classList.remove('hidden');
+                loadUnitsAndShowModal(); // перевіряємо юніт при старті
+            } else {
+                document.getElementById('auth-container').classList.remove('hidden');
+            }
+        });
+
+        // --- Unit Selection Logic ---
+        async function loadUnitsAndShowModal() {
+            // Якщо юніт вже є в пам'яті, просто оновлюємо UI
+            if (currentUnit) {
+                updateAppForUnit();
+                return; 
+            }
+
+            try {
+                const response = await fetchProtected(`${API_BASE}/personnel/units`);
+                const result = await response.json();
+                const select = document.getElementById('unit-select');
+                select.innerHTML = '<option value="">-- Оберіть підрозділ --</option>';
+                
+                if(userRole === 'admin') {
+                     select.innerHTML += '<option value="ALL">Всі підрозділи (Адмін)</option>';
+                }
+
+                result.data.forEach(unit => {
+                    select.innerHTML += `<option value="${unit}">${unit}</option>`;
+                });
+                
+                document.getElementById('unit-modal').classList.remove('hidden');
+            } catch (e) {
+                console.error(e);
+                // Якщо помилка (наприклад, немає інтернету), все одно можна спробувати показати інтерфейс
+                // Але краще обробити коректно
+            }
+        }
+
+        function confirmUnitSelection() {
+            const select = document.getElementById('unit-select');
+            if (!select.value) return alert('Будь ласка, оберіть підрозділ');
+            
+            currentUnit = select.value === 'ALL' ? '' : select.value;
+            localStorage.setItem('currentUnit', currentUnit);
+            
+            document.getElementById('unit-modal').classList.add('hidden');
+            updateAppForUnit();
+        }
+
+        function updateAppForUnit() {
+            // Оновлюємо заголовок
+            const unitName = currentUnit ? `Підрозділ: ${currentUnit}` : 'Всі підрозділи';
+            document.getElementById('header-unit-name').textContent = unitName;
+            document.getElementById('dashboard-unit-label').textContent = unitName;
+
+            showPage('dashboard');
+            applyRolePermissions();
+        }
+
+        function changeUnit() {
+            localStorage.removeItem('currentUnit');
+            currentUnit = '';
+            loadUnitsAndShowModal();
+        }
+
+        function applyRolePermissions() {
+            const navAddBtn = document.getElementById('nav-add-btn');
+            const listAddBtn = document.getElementById('list-add-btn');
+            const delButtons = document.querySelectorAll('.delete-btn'); // Клас треба додати кнопкам видалення
+
+            if (userRole !== 'admin') {
+                if(navAddBtn) navAddBtn.style.display = 'none';
+                if(listAddBtn) listAddBtn.style.display = 'none';
+                delButtons.forEach(btn => btn.style.display = 'none');
+            } else {
+                if(navAddBtn) navAddBtn.style.display = 'block';
+                if(listAddBtn) listAddBtn.style.display = 'block';
+                delButtons.forEach(btn => btn.style.display = 'block');
+            }
+        }
+
+        function prepareAndShowAddPage() {
+            resetForm();      
+            showPage('add');  
+        }
+
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(page + '-page').classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-military-700'));
+            
+            // Активна кнопка
+            let activeSelector = '';
+            if (page === 'dashboard') activeSelector = `[onclick="showPage('dashboard')"]`;
+            else if (page === 'personnel') activeSelector = `[onclick="showPage('personnel')"]`;
+            else if (page === 'add') activeSelector = `[onclick="prepareAndShowAddPage()"]`;
+
+            if(activeSelector) {
+                const btn = document.querySelector(activeSelector);
+                if(btn) btn.classList.add('bg-military-700');
+            }
+            
+            currentPage = page;
+
+            if (page === 'dashboard') {
+                loadStatistics();
+            } else if (page === 'personnel') {
+                loadPersonnel();
+            }
+        }
+
+        async function loadStatistics() {
+            try {
+                const response = await fetchProtected(`${API_BASE}/personnel/statistics?unit=${currentUnit}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const stats = result.data;
+                    document.getElementById('total-count').textContent = stats.total;
+                    document.getElementById('active-count').textContent = stats.active;
+                    document.getElementById('inactive-count').textContent = stats.inactive;
+                    document.getElementById('leave-count').textContent = stats.onLeave;
+
+                    renderRankStats(stats.rankStats);
+                    renderUnitStats(stats.unitStats);
+                    renderStatusChart(stats);
+                    renderBloodTypeStats(stats.bloodTypeStats);
+                    renderRecentAdditions(stats.recentAdditions);
+                }
+            } catch (error) {
+                if (error.message !== 'Unauthorized') showNotification('Помилка завантаження статистики', 'error');
+            }
+        }
+
+        let statusChartInstance = null;
+        function renderStatusChart(stats) {
+            const ctx = document.getElementById('status-chart').getContext('2d');
+            const data = {
+                labels: ['Активні', 'Неактивні', 'У відпустці'],
+                datasets: [{
+                    data: [stats.active, stats.inactive, stats.onLeave],
+                    backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(234, 179, 8, 0.8)'],
+                    borderColor: ['rgba(34, 197, 94, 1)', 'rgba(239, 68, 68, 1)', 'rgba(234, 179, 8, 1)'],
+                    borderWidth: 1,
+                    hoverOffset: 8
+                }]
+            };
+
+            if (statusChartInstance) {
+                statusChartInstance.destroy();
+            }
+
+            statusChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        function renderBloodTypeStats(bloodStats) {
+            const container = document.getElementById('blood-type-stats');
+            container.innerHTML = '';
+            const total = bloodStats.reduce((sum, stat) => sum + stat.count, 0);
+            if (total === 0) {
+                 container.innerHTML = '<p class="text-gray-500 text-sm">Немає даних про групи крові.</p>';
+                 return;
+            }
+
+            bloodStats.forEach(stat => {
+                const percentage = ((stat.count / total) * 100).toFixed(1);
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-medium text-gray-700">${stat._id}</span>
+                        <span class="text-sm text-gray-500">${stat.count} (${percentage}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-red-600 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderRecentAdditions(recentPersonnel) {
+            const list = document.getElementById('recent-additions-list');
+            list.innerHTML = '';
+            if (recentPersonnel.length === 0) {
+                list.innerHTML = '<li class="py-3 text-sm text-gray-500">Немає нещодавно доданих.</li>';
+                return;
+            }
+
+            recentPersonnel.forEach(person => {
+                const li = document.createElement('li');
+                li.className = 'py-3 flex items-center justify-between';
+                const date = new Date(person.createdAt).toLocaleDateString('uk-UA');
+                li.innerHTML = `
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">${person.lastName} ${person.firstName}</p>
+                        <p class="text-sm text-gray-500">${person.rank}</p>
+                    </div>
+                    <span class="text-sm text-gray-500">${date}</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderRankStats(rankStats) {
+            const container = document.getElementById('rank-stats');
+            container.innerHTML = '';
+            
+            rankStats.forEach(stat => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center py-2 border-b border-gray-200';
+                div.innerHTML = `
+                    <span class="text-sm text-gray-600">${stat._id}</span>
+                    <span class="text-sm font-medium text-gray-900">${stat.count}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderUnitStats(unitStats) {
+            const container = document.getElementById('unit-stats');
+            container.innerHTML = '';
+            
+            unitStats.forEach(stat => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center py-2 border-b border-gray-200';
+                div.innerHTML = `
+                    <span class="text-sm text-gray-600">${stat._id}</span>
+                    <span class="text-sm font-medium text-gray-900">${stat.count}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadPersonnel(page = 1, search = '', status = '') {
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: 10,
+                    search: search,
+                    status: status,
+                    unit: currentUnit // Додаємо фільтр по підрозділу
+                });
+                
+                const response = await fetchProtected(`${API_BASE}/personnel?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentPersonnel = result.data;
+                    currentPagination = result.pagination;
+                    renderPersonnelTable();
+                    renderPagination();
+                    applyRolePermissions(); // Оновлюємо видимість кнопок
+                }
+            } catch (error) {
+                console.error('Error loading personnel:', error);
+                showNotification('Помилка завантаження персоналу', 'error');
+            }
+        }
+
+        function renderPersonnelTable() {
+            const tbody = document.getElementById('personnel-table-body');
+            tbody.innerHTML = '';
+            
+            currentPersonnel.forEach(person => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+                
+                const statusClass = {
+                    'active': 'bg-green-100 text-green-800',
+                    'inactive': 'bg-red-100 text-red-800',
+                    'leave': 'bg-yellow-100 text-yellow-800'
+                };
+                
+                const statusText = {
+                    'active': 'Активний',
+                    'inactive': 'Неактивний',
+                    'leave': 'У відпустці'
+                };
+                
+                // Кнопка видалення показується тільки адміну (логіка в CSS/JS)
+                const deleteBtnHtml = userRole === 'admin' ? 
+                    `<button onclick="deletePersonnel('${person._id}')" class="delete-btn text-red-600 hover:text-red-900">
+                        <i class="fas fa-trash"></i> Видалити
+                    </button>` : '';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${person.militaryId}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${person.lastName} ${person.firstName} ${person.middleName || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${person.rank}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${person.unit}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusClass[person.status]}">${statusText[person.status]}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editPersonnel('${person._id}')" class="text-military-600 hover:text-military-900 mr-3">
+                            <i class="fas fa-edit"></i> Редагувати
+                        </button>
+                        ${deleteBtnHtml}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPagination() {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+            
+            if (currentPagination.pages <= 1) return;
+            
+            const paginationDiv = document.createElement('div');
+            paginationDiv.className = 'flex space-x-2';
+            
+            if (currentPagination.current > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50';
+                prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                prevBtn.onclick = () => loadPersonnel(currentPagination.current - 1, getSearchValue(), getStatusValue());
+                paginationDiv.appendChild(prevBtn);
+            }
+            
+            for (let i = 1; i <= currentPagination.pages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `px-3 py-2 border rounded-md text-sm ${
+                    i === currentPagination.current 
+                        ? 'bg-military-600 text-white border-military-600' 
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => loadPersonnel(i, getSearchValue(), getStatusValue());
+                paginationDiv.appendChild(pageBtn);
+            }
+            
+            if (currentPagination.current < currentPagination.pages) {
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50';
+                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                nextBtn.onclick = () => loadPersonnel(currentPagination.current + 1, getSearchValue(), getStatusValue());
+                paginationDiv.appendChild(nextBtn);
+            }
+            
+            container.appendChild(paginationDiv);
+            const info = document.createElement('div');
+            info.className = 'text-sm text-gray-700';
+            info.textContent = `Показано ${(currentPagination.current - 1) * 10 + 1}-${Math.min(currentPagination.current * 10, currentPagination.total)} з ${currentPagination.total} записів`;
+            container.appendChild(info);
+        }
+
+        function searchPersonnel() {
+            const search = getSearchValue();
+            const status = getStatusValue();
+            loadPersonnel(1, search, status);
+        }
+
+        function getSearchValue() {
+            return document.getElementById('search-input').value;
+        }
+
+        function getStatusValue() {
+            return document.getElementById('status-filter').value;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search-input');
+            if(searchInput){
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchPersonnel();
+                    }
+                });
+            }
+        });
+
+        async function editPersonnel(id) {
+            try {
+                const response = await fetchProtected(`${API_BASE}/personnel/${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    editingPersonnel = result.data;
+                    fillForm(result.data);
+                    document.getElementById('form-title').textContent = 'Редагувати військовослужбовця';
+                    showPage('add');
+                }
+            } catch (error) {
+                console.error('Error loading personnel for edit:', error);
+                showNotification('Помилка завантаження даних для редагування', 'error');
+            }
+        }
+
+        async function deletePersonnel(id) {
+            if (!confirm('Ви впевнені, що хочете видалити цього військовослужбовця?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetchProtected(`${API_BASE}/personnel/${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Військовослужбовця видалено успішно', 'success');
+                    loadPersonnel();
+                    loadStatistics();
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting personnel:', error);
+                showNotification('Помилка при видаленні', 'error');
+            }
+        }
+
+        document.getElementById('personnel-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {};
+            data.medicalInfo = {}; 
+
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('medicalInfo.')) {
+                    const subKey = key.split('.')[1]; 
+                    data.medicalInfo[subKey] = value;
+                } else {
+                    data[key] = value;
+                }
+            }
+            if (data.birthDate) data.birthDate = new Date(data.birthDate).toISOString();
+            if (data.serviceStartDate) data.serviceStartDate = new Date(data.serviceStartDate).toISOString();
+            
+            try {
+                const url = editingPersonnel 
+                    ? `${API_BASE}/personnel/${editingPersonnel._id}`
+                    : `${API_BASE}/personnel`;
+                    
+                const method = editingPersonnel ? 'PUT' : 'POST';
+                
+                const response = await fetchProtected(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const message = editingPersonnel 
+                        ? 'Дані оновлено успішно' 
+                        : 'Військовослужбовця додано успішно';
+                    showNotification(message, 'success');
+                    showPage('personnel');
+                    loadPersonnel();
+                    loadStatistics();
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving personnel:', error);
+                showNotification('Помилка при збереженні даних', 'error');
+            }
+        });
+
+        function fillForm(data) {
+            document.getElementById('personnel-form').reset();
+            
+            // Логіка блокування полів для НЕ адмінів
+            const form = document.getElementById('personnel-form');
+            const inputs = form.querySelectorAll('input, select, textarea');
+            
+            inputs.forEach(input => {
+                if (userRole !== 'admin') {
+                    // Блокуємо все, крім статусу
+                    if (input.name !== 'status') {
+                        input.disabled = true;
+                        input.classList.add('bg-gray-200', 'cursor-not-allowed');
+                    } else {
+                        input.disabled = false;
+                        input.classList.remove('bg-gray-200', 'cursor-not-allowed');
+                    }
+                } else {
+                    // Адміну можна все
+                    input.disabled = false;
+                    input.classList.remove('bg-gray-200', 'cursor-not-allowed');
+                }
+            });
+
+            // Заповнення даних
+            Object.keys(data).forEach(key => {
+                if (key === 'medicalInfo' && data[key]) {
+                    Object.keys(data[key]).forEach(subKey => {
+                        const inputName = `medicalInfo.${subKey}`;
+                        const input = document.querySelector(`[name="${inputName}"]`);
+                        if (input) input.value = data[key][subKey] || ''; 
+                    });
+                } else {
+                    const input = document.querySelector(`[name="${key}"]`);
+                    if (input) {
+                        if (input.type === 'date' && data[key]) {
+                            input.value = new Date(data[key]).toISOString().split('T')[0];
+                        } else {
+                            input.value = data[key] || ''; 
+                        }
+                    }
+                }
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('personnel-form').reset();
+            editingPersonnel = null;
+            document.getElementById('form-title').textContent = 'Додати військовослужбовця';
+            
+            // Розблокувати всі поля для форми додавання (якщо адмін)
+            // Якщо не адмін, він взагалі сюди не зайде (кнопка прихована)
+            const form = document.getElementById('personnel-form');
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.disabled = false;
+                input.classList.remove('bg-gray-200', 'cursor-not-allowed');
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-4 rounded-md shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
