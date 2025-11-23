@@ -7,6 +7,7 @@ const User = require('./models/userModel'); // Додали для створе�
 
 const authRoutes = require('./routes/authRoutes');
 const personnelRoutes = require('./routes/personnelRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.use(express.static(path.join(__dirname, 'public'))); // Використов
 
 app.use('/api/auth', authRoutes);
 app.use('/api/personnel', personnelRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
