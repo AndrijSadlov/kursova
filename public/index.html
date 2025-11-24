@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Система обліку військовослужбовців</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -26,7 +26,6 @@
         }
     </script>
     <style>
-        /* Фікс для фону на мобільних */
         .bg-fixed-cover {
             background-attachment: fixed;
             background-size: cover;
@@ -50,7 +49,7 @@
     </div>
 </div>
 
-<div id="auth-container" class="relative min-h-screen flex items-center justify-center p-4 hidden">
+<div id="auth-container" class="relative min-h-screen flex flex-col items-center justify-center p-4 hidden">
     <div class="absolute inset-0 bg-fixed-cover z-0" style="background-image: url('https://www.istpravda.com.ua/images/doc/b/8/b8435c6-dscn2023.jpg'); filter: brightness(0.4);"></div>
     
     <div class="relative z-10 w-full max-w-md">
@@ -97,6 +96,14 @@
                 <button type="button" onclick="toggleAuthForm()" class="font-medium text-military-500 hover:text-military-400">Увійти</button>
             </p>
         </form>
+
+        <div class="mt-6 text-center">
+            <a href="https://github.com/AndrijSadlov/kursova#readme" target="_blank" class="inline-flex items-center px-4 py-2 bg-gray-900/60 backdrop-blur-sm border border-gray-500/30 rounded-full text-gray-200 text-sm hover:bg-gray-900/90 hover:text-white transition-all shadow-lg transform hover:scale-105">
+                <i class="fab fa-github mr-2 text-xl"></i>
+                Читати документацію (README)
+            </a>
+        </div>
+
     </div>
 </div>
 
@@ -267,8 +274,7 @@
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Дії</th>
                         </tr>
                     </thead>
-                    <tbody id="personnel-table-body" class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    <tbody id="personnel-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                 </table>
             </div>
             <div id="pagination" class="flex justify-center mt-4 px-2"></div>
@@ -288,8 +294,7 @@
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Дії</th>
                             </tr>
                         </thead>
-                        <tbody id="users-table-body" class="bg-white divide-y divide-gray-200">
-                            </tbody>
+                        <tbody id="users-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -306,36 +311,29 @@
 
                 <form id="personnel-form" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
                         <div class="col-span-1 md:col-span-2">
                             <h3 class="text-lg font-medium text-gray-900 mb-2 border-b pb-2">Основна інформація</h3>
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Військовий ID *</label>
                             <input type="text" name="militaryId" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Прізвище *</label>
                             <input type="text" name="lastName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Ім'я *</label>
                             <input type="text" name="firstName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">По батькові</label>
                             <input type="text" name="middleName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Дата народження *</label>
                             <input type="date" name="birthDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Звання *</label>
                             <select name="rank" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
@@ -357,22 +355,18 @@
                                 <option value="Полковник">Полковник</option>
                             </select>
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Посада *</label>
                             <input type="text" name="position" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Підрозділ *</label>
                             <input type="text" name="unit" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Дата початку служби *</label>
                             <input type="date" name="serviceStartDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Статус</label>
                             <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
@@ -385,17 +379,14 @@
                         <div class="col-span-1 md:col-span-2 mt-4">
                             <h3 class="text-lg font-medium text-gray-900 mb-2 border-b pb-2">Контактна інформація</h3>
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Телефон</label>
                             <input type="tel" name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                             <input type="email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
                         </div>
-
                         <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Адреса</label>
                             <textarea name="address" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500"></textarea>
@@ -404,7 +395,6 @@
                         <div class="col-span-1 md:col-span-2 mt-4">
                             <h3 class="text-lg font-medium text-gray-900 mb-2 border-b pb-2">Медична інформація</h3>
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Група крові</label>
                             <select name="medicalInfo.bloodType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500">
@@ -419,17 +409,14 @@
                                 <option value="AB(IV) Rh-">AB(IV) Rh-</option>
                             </select>
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Алергії</label>
                             <input type="text" name="medicalInfo.allergies" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500" placeholder="Наприклад, на пеніцилін">
                         </div>
-
                         <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Медикаменти, що постійно вживаються</label>
                             <textarea name="medicalInfo.medications" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-military-500"></textarea>
                         </div>
-
                     </div>
 
                     <div class="flex justify-end space-x-4 mt-8 pt-4 border-t">
